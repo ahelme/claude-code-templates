@@ -206,8 +206,8 @@ class ClaudeAPIProxy {
     
     console.log(chalk.green(`✅ Message sent to ${conversationFile}`));
     
-    // Try to notify Claude Code process about the file change
-    await this.notifyClaudeProcess();
+    // Try to notify Claude Code process about the file change and inject the message
+    await this.notifyClaudeProcess(messageContent);
     
     // TODO: Monitor for Claude Code response
     
@@ -248,7 +248,7 @@ class ClaudeAPIProxy {
   }
   
   encodeProjectPath(projectPath) {
-    return projectPath.replace(/\\//g, '-').replace(/^-/, '');
+    return projectPath.replace(/\//g, '-').replace(/^-/, '');
   }
   
   async getConversationContext(conversationFile) {
@@ -366,106 +366,91 @@ class ClaudeAPIProxy {
 
 module.exports = ClaudeAPIProxy;
 
-// Method to notify Claude Code process
-ClaudeAPIProxy.prototype.notifyClaudeProcess = async function() {
+// Simplified message injection for Claude Code
+ClaudeAPIProxy.prototype.notifyClaudeProcess = async function(messageText = '') {
   try {
-    console.log(chalk.blue('🔔 Attempting to activate Claude Code process...'));
+    console.log(chalk.blue(`🎯 Injecting "${messageText}" into Claude Code...`));
     
-    // Method 1: Find Claude Code process and try to send input
-    const { exec, spawn } = require('child_process');
-    
-    // First, find Claude Code processes
-    exec('ps aux | grep "claude"', (error, stdout, stderr) => {
-      if (stdout) {
-        const claudeProcesses = stdout.split('\n')
-          .filter(line => line.includes('claude') && !line.includes('grep'))
-          .filter(line => !line.includes('claude-code-templates')); // Exclude our dashboard
-        
-        console.log(chalk.blue(`🔍 Found ${claudeProcesses.length} Claude process(es)`));
-        
-        claudeProcesses.forEach(processLine => {
-          const pid = processLine.trim().split(/\s+/)[1];
-          console.log(chalk.gray(`  - PID ${pid}: ${processLine.substring(0, 100)}...`));
-        });
-      }
-    });
-    
-    // Method 2: Try to write to the Claude Code terminal using applescript (macOS)
-    if (process.platform === 'darwin') {
-      this.tryAppleScriptNotification();
+    // Only try Warp AppleScript injection - simple and focused
+    if (process.platform === 'darwin' && messageText) {
+      this.tryAppleScriptNotification(messageText);
+    } else {
+      console.log(chalk.yellow('⚠️ Message injection only supported on macOS with Warp terminal'));
     }
     
-    // Method 3: Try sending wake-up signal
-    try {
-      exec('pkill -SIGUSR1 claude', () => {});
-    } catch (e) {/* ignore */}
-    
   } catch (error) {
-    console.log(chalk.gray('🔕 Could not notify Claude Code process'));
+    console.log(chalk.red(`❌ Injection failed: ${error.message}`));
   }
 };
 
-// Try to use AppleScript to send input to Claude Code terminal
-ClaudeAPIProxy.prototype.tryAppleScriptNotification = function() {
+// Terminal.app-only message injection (reliable AppleScript support)
+ClaudeAPIProxy.prototype.tryAppleScriptNotification = function(messageText = '') {
   try {
     const { exec } = require('child_process');
     
-    // This AppleScript tries to find Terminal/iTerm with Claude Code and send a key
-    const appleScript = `
-      tell application "System Events"
-        set claudeFound to false
-        try
-          -- Try Terminal first
-          tell application "Terminal"
-            repeat with w in windows
-              repeat with t in tabs of w
-                if (custom title of t contains "claude" or name of t contains "claude") then
-                  set claudeFound to true
-                  set frontmost to true
-                  do script "" in t  -- Send empty command to wake up
-                  exit repeat
-                end if
-              end repeat
-              if claudeFound then exit repeat
-            end repeat
-          end tell
-        end try
+    console.log(chalk.blue(`🎯 Targeting Terminal.app for message: "${messageText}"`));
+    
+    // First, get the Claude process TTY
+    exec('ps -o tty -p $(pgrep -x claude) | tail -1', (error, stdout) => {
+      if (error) {
+        console.log(chalk.red(`❌ Could not find Claude process TTY: ${error.message}`));
+        return;
+      }
+      
+      const claudeTTY = `/dev/${stdout.trim()}`;
+      console.log(chalk.blue(`🔍 Found Claude running on TTY: ${claudeTTY}`));
+      
+      // Now use the actual TTY in AppleScript
+      const appleScript = `
+        set messageText to "${messageText.replace(/"/g, '\\"')}"
+        set success to false
         
-        if not claudeFound then
-          try
-            -- Try iTerm2
-            tell application "iTerm"
-              repeat with w in windows
-                repeat with t in tabs of w
-                  tell current session of t
-                    if (name contains "claude") then
-                      set claudeFound to true
-                      select
-                      write text ""
-                      exit repeat
-                    end if
-                  end tell
-                end repeat
-                if claudeFound then exit repeat
-              end repeat
-            end tell
-          end try
-        end if
+        tell application "Terminal"
+          set claudeFound to false
+          repeat with w in windows
+            repeat with t in tabs of w
+              try
+                set tabTTY to (tty of t)
+                if (tabTTY is "${claudeTTY}") then
+                set claudeFound to true
+                set selected tab of w to t
+                set frontmost of w to true
+                activate
+                delay 0.5
+                do script messageText & return in t
+                set success to true
+                exit repeat
+              end if
+            end try
+          end repeat
+          if claudeFound then exit repeat
+        end repeat
       end tell
+      
+      return success
     `;
     
-    exec(`osascript -e '${appleScript.replace(/'/g, "\\'")}'`, (error) => {
-      if (error) {
-        console.log(chalk.gray('🔕 AppleScript notification failed'));
-      } else {
-        console.log(chalk.green('✅ AppleScript notification sent'));
-      }
+      exec(`osascript -e '${appleScript.replace(/'/g, "\\'")}'`, (error, stdout) => {
+        if (error) {
+          console.log(chalk.red(`❌ Terminal.app injection failed: ${error.message}`));
+          console.log(chalk.yellow('💡 Make sure Claude Code is running in Terminal.app and has Accessibility permissions'));
+        } else {
+          const success = stdout.trim() === 'true';
+          if (success) {
+            console.log(chalk.green(`✅ Successfully sent "${messageText}" to Claude Code in Terminal.app`));
+          } else {
+            console.log(chalk.yellow(`⚠️ Could not find Claude Code session in Terminal.app TTY: ${claudeTTY}`));
+            console.log(chalk.blue('💡 Ensure Claude Code is running in Terminal.app'));
+          }
+        }
+      });
     });
     
   } catch (error) {
-    // Silent fail
+    console.log(chalk.red(`❌ AppleScript error: ${error.message}`));
   }
 };
+
 
 // If run directly
 if (require.main === module) {

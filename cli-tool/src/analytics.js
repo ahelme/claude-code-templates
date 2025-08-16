@@ -618,6 +618,10 @@ class ClaudeAnalytics {
   }
 
   setupWebServer() {
+    // Add JSON body parser middleware FIRST
+    this.app.use(express.json());
+    this.app.use(express.urlencoded({ extended: true }));
+    
     // Add CORS middleware
     this.app.use((req, res, next) => {
       res.header('Access-Control-Allow-Origin', '*');
@@ -1203,6 +1207,105 @@ class ClaudeAnalytics {
       } catch (error) {
         console.error('Error loading agents:', error);
         res.status(500).json({ error: 'Failed to load agents data' });
+      }
+    });
+
+    // Proxy routes to Claude API Proxy
+    this.app.post('/api/send-message', async (req, res) => {
+      try {
+        console.log('📡 Proxying send-message request to API Proxy...');
+        console.log('📦 Request body:', req.body);
+        
+        // Ensure we have a body
+        if (!req.body) {
+          return res.status(400).json({ error: 'Request body is required' });
+        }
+        
+        // Forward the request to the API Proxy using http
+        const http = require('http');
+        const postData = JSON.stringify(req.body);
+        
+        console.log('📤 Sending to API Proxy:', postData);
+        
+        const options = {
+          hostname: 'localhost',
+          port: this.apiProxyPort,
+          path: '/api/send-message',
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Content-Length': Buffer.byteLength(postData)
+          }
+        };
+
+        const proxyReq = http.request(options, (proxyRes) => {
+          let data = '';
+          
+          proxyRes.on('data', (chunk) => {
+            data += chunk;
+          });
+          
+          proxyRes.on('end', () => {
+            try {
+              const jsonData = JSON.parse(data);
+              res.status(proxyRes.statusCode).json(jsonData);
+            } catch (parseError) {
+              res.status(500).json({ error: 'Invalid response from API Proxy' });
+            }
+          });
+        });
+
+        proxyReq.on('error', (error) => {
+          console.error('❌ Error connecting to API Proxy:', error);
+          res.status(500).json({ error: 'API Proxy not available: ' + error.message });
+        });
+
+        proxyReq.write(postData);
+        proxyReq.end();
+        
+      } catch (error) {
+        console.error('❌ Error proxying to API Proxy:', error);
+        res.status(500).json({ error: 'API Proxy error: ' + error.message });
+      }
+    });
+    
+    this.app.get('/api/proxy-sessions', async (req, res) => {
+      try {
+        const http = require('http');
+        
+        const options = {
+          hostname: 'localhost',
+          port: this.apiProxyPort,
+          path: '/api/sessions',
+          method: 'GET'
+        };
+
+        const proxyReq = http.request(options, (proxyRes) => {
+          let data = '';
+          
+          proxyRes.on('data', (chunk) => {
+            data += chunk;
+          });
+          
+          proxyRes.on('end', () => {
+            try {
+              const jsonData = JSON.parse(data);
+              res.status(proxyRes.statusCode).json(jsonData);
+            } catch (parseError) {
+              res.status(500).json({ error: 'Invalid response from API Proxy' });
+            }
+          });
+        });
+
+        proxyReq.on('error', (error) => {
+          console.error('❌ Error connecting to API Proxy sessions:', error);
+          res.status(500).json({ error: 'API Proxy not available: ' + error.message });
+        });
+
+        proxyReq.end();
+      } catch (error) {
+        console.error('❌ Error proxying to API Proxy sessions:', error);
+        res.status(500).json({ error: 'API Proxy error: ' + error.message });
       }
     });
 

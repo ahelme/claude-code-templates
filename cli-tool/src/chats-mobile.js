@@ -14,7 +14,8 @@ const WebSocketServer = require('./analytics/notifications/WebSocketServer');
 class ChatsMobile {
   constructor(options = {}) {
     this.app = express();
-    this.port = 9876; // Uncommon port for chats mobile
+    // Support configurable port via options, environment variable, or default to 9876
+    this.port = parseInt(options.chatsMobilePort || options.port || process.env.CLAUDE_CODE_TEMPLATES_CHATS_MOBILE_PORT || process.env.CHATS_MOBILE_PORT || '9876', 10);
     this.fileWatcher = new FileWatcher();
     this.stateCalculator = new StateCalculator();
     this.dataCache = new DataCache();

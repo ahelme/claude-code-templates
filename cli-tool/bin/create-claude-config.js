@@ -66,6 +66,10 @@ program
   .option('--hook <hook>', 'install specific hook component (supports comma-separated values)')
   .option('--workflow <workflow>', 'install workflow from hash (#hash) OR workflow YAML (base64 encoded) when used with --agent/--command/--mcp')
   .option('--prompt <prompt>', 'execute the provided prompt in Claude Code after installation')
+  .option('-p, --port <port>', 'specify port for analytics dashboard (default: 3333)')
+  .option('--api-proxy-port <port>', 'specify port for Claude API Proxy (default: 3335)')
+  .option('--console-bridge-port <port>', 'specify port for Console Bridge (default: 3334)')
+  .option('--chats-mobile-port <port>', 'specify port for Chats Mobile (default: 9876)')
   .action(async (options) => {
     try {
       await createClaudeConfig(options);

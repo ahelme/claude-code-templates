@@ -17,7 +17,7 @@ const { startChatsMobile } = require('./chats-mobile');
 const { runHealthCheck } = require('./health-check');
 const { trackingService } = require('./tracking-service');
 
-async function showMainMenu() {
+async function showMainMenu(options = {}) {
   console.log('');
   
   const initialChoice = await inquirer.prompt([{
@@ -57,21 +57,32 @@ async function showMainMenu() {
   if (initialChoice.action === 'analytics') {
     console.log(chalk.blue('📊 Launching Claude Code Analytics Dashboard...'));
     trackingService.trackAnalyticsDashboard({ page: 'dashboard', source: 'interactive_menu' });
-    await runAnalytics({});
+    await runAnalytics({ 
+      port: options.port,
+      apiProxyPort: options.apiProxyPort,
+      consoleBridgePort: options.consoleBridgePort
+    });
     return;
   }
   
   if (initialChoice.action === 'chats') {
     console.log(chalk.blue('💬 Launching Claude Code Mobile Chats...'));
     trackingService.trackAnalyticsDashboard({ page: 'chats-mobile', source: 'interactive_menu' });
-    await startChatsMobile({});
+    await startChatsMobile({ 
+      chatsMobilePort: options.chatsMobilePort
+    });
     return;
   }
   
   if (initialChoice.action === 'agents') {
     console.log(chalk.blue('🤖 Launching Claude Code Agents Dashboard...'));
     trackingService.trackAnalyticsDashboard({ page: 'agents', source: 'interactive_menu' });
-    await runAnalytics({ openTo: 'agents' });
+    await runAnalytics({ 
+      openTo: 'agents',
+      port: options.port,
+      apiProxyPort: options.apiProxyPort,
+      consoleBridgePort: options.consoleBridgePort
+    });
     return;
   }
   
@@ -89,10 +100,10 @@ async function showMainMenu() {
     if (healthResult.runSetup) {
       console.log(chalk.blue('⚙️  Starting Project Setup...'));
       // Continue with setup flow
-      return await createClaudeConfig({});
+      return await createClaudeConfig(options);
     } else {
       console.log(chalk.green('👍 Health check completed. Returning to main menu...'));
-      return await showMainMenu();
+      return await showMainMenu(options);
     }
   }
   
@@ -193,13 +204,13 @@ async function createClaudeConfig(options = {}) {
       shouldRunSetup = true;
     } else {
       console.log(chalk.green('👍 Health check completed. Returning to main menu...'));
-      return await showMainMenu();
+      return await showMainMenu(options);
     }
   }
   
   // Add initial choice prompt (only if no specific options are provided and not continuing from health check or menu)
   if (!shouldRunSetup && !options.setupFromMenu && !options.yes && !options.language && !options.framework && !options.dryRun) {
-    return await showMainMenu();
+    return await showMainMenu(options);
   } else {
     console.log(chalk.blue('🚀 Setting up Claude Code configuration...'));
   }
