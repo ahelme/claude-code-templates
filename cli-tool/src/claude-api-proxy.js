@@ -6,9 +6,10 @@ const { v4: uuidv4 } = require('uuid');
 const chalk = require('chalk');
 
 class ClaudeAPIProxy {
-  constructor() {
+  constructor(options = {}) {
     this.app = express();
-    this.port = 3335;
+    // Support configurable port via options, environment variable, or default to 3335
+    this.port = parseInt(options.port || process.env.CLAUDE_CODE_TEMPLATES_API_PROXY_PORT || process.env.API_PROXY_PORT || '3335', 10);
     this.claudeDir = path.join(os.homedir(), '.claude');
     
     // Store active sessions and conversation contexts
@@ -34,6 +35,24 @@ class ClaudeAPIProxy {
   }
   
   setupRoutes() {
+    // Status/Info page
+    this.app.get('/', (req, res) => {
+      res.json({
+        service: 'Claude API Proxy',
+        status: 'running',
+        port: this.port,
+        version: '1.0.0',
+        description: 'Proxy service for bidirectional communication with Claude Code',
+        endpoints: {
+          '/': 'This status page',
+          '/api/sessions': 'Get active Claude Code sessions',
+          '/api/send-message': 'Send message to Claude Code (POST)',
+          '/api/conversation/:sessionId': 'Get conversation history'
+        },
+        timestamp: new Date().toISOString()
+      });
+    });
+
     // Get active conversations/sessions
     this.app.get('/api/sessions', async (req, res) => {
       try {

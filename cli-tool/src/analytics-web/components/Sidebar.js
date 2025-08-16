@@ -50,6 +50,41 @@ class Sidebar {
                 <span class="nav-text">Dashboard</span>
               </a>
             </li>
+            <li class="nav-item ${this.currentPage === 'chats' ? 'active' : ''}" data-page="chats" title="Mobile Chat Interface">
+              <a href="/chats_mobile.html" class="nav-link">
+                <div class="nav-icon">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/>
+                  </svg>
+                </div>
+                <span class="nav-text">Mobile Chat</span>
+              </a>
+            </li>
+            
+            <!-- External Links Section -->
+            <li class="nav-divider"></li>
+            <li class="nav-item external" title="Claude Code Templates - Main Interface">
+              <a href="https://www.aitmpl.com/" target="_blank" class="nav-link external-link">
+                <div class="nav-icon">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                  </svg>
+                </div>
+                <span class="nav-text">Templates Hub</span>
+                <div class="external-indicator">↗</div>
+              </a>
+            </li>
+            <li class="nav-item external" title="Claude Code Documentation">
+              <a href="https://docs.anthropic.com/en/docs/claude-code" target="_blank" class="nav-link external-link">
+                <div class="nav-icon">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 2 2h16c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/>
+                  </svg>
+                </div>
+                <span class="nav-text">Documentation</span>
+                <div class="external-indicator">↗</div>
+              </a>
+            </li>
           </ul>
         </div>
         
@@ -71,14 +106,17 @@ class Sidebar {
   bindEvents() {
     const sidebar = this.container.querySelector('.sidebar');
     
-    // Navigation items
-    const navItems = this.container.querySelectorAll('.nav-item');
+    // Navigation items (only handle dashboard navigation, exclude direct links)
+    const navItems = this.container.querySelectorAll('.nav-item:not(.external)');
     navItems.forEach(item => {
-      item.addEventListener('click', (e) => {
-        e.preventDefault();
-        const page = item.getAttribute('data-page');
-        this.navigateToPage(page);
-      });
+      const page = item.getAttribute('data-page');
+      if (page === 'dashboard') {
+        item.addEventListener('click', (e) => {
+          e.preventDefault();
+          this.navigateToPage(page);
+        });
+      }
+      // Let other nav items (like chats) use their direct href links
     });
 
     // Hover to expand when collapsed

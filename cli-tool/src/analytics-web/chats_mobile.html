@@ -119,6 +119,38 @@
             transform: translateY(0);
             box-shadow: 0 1px 2px rgba(255, 107, 53, 0.2);
         }
+        
+        /* Dashboard link - subtle and mobile-friendly */
+        .dashboard-link {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.85rem;
+            font-weight: 500;
+            padding: 6px 8px;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            white-space: nowrap;
+        }
+        
+        .dashboard-link:hover {
+            color: var(--terminal-orange);
+            background: rgba(255, 107, 53, 0.05);
+            transform: translateY(-1px);
+        }
+        
+        .dashboard-link:active {
+            transform: translateY(0);
+        }
+        
+        /* Mobile responsiveness for dashboard link */
+        @media (max-width: 480px) {
+            .dashboard-link {
+                font-size: 0.8rem;
+                padding: 4px 6px;
+            }
+        }
 
         .back-btn {
             background: rgba(255, 107, 53, 0.15) !important;
@@ -1008,6 +1040,9 @@
                 <div class="chat-header-content">
                     <h1 class="chat-title">Claude Code Chats</h1>
                     <div class="header-actions">
+                        <a href="/" class="dashboard-link" title="Back to Dashboard">
+                            ← Dashboard
+                        </a>
                         <button class="header-btn" id="refreshBtn" title="Refresh">
                             Refresh
                         </button>

@@ -20,7 +20,6 @@
     <script src="components/ToolDisplay.js"></script>
     <script src="components/Sidebar.js"></script>
     <script src="components/DashboardPage.js"></script>
-    <script src="components/AgentsPage.js"></script>
     <script src="components/App.js"></script>
     
     <!-- main.js removed - deprecated architecture -->
@@ -3043,6 +3042,50 @@
         .sidebar.hover-expanded .nav-text {
             opacity: 1;
             transform: translateX(0);
+        }
+        
+        /* External Links Styling */
+        .nav-divider {
+            height: 1px;
+            background: var(--border-primary);
+            margin: 16px 8px;
+            opacity: 0.5;
+        }
+        
+        .sidebar.hover-expanded .nav-divider {
+            margin: 16px 16px;
+        }
+        
+        .nav-item.external .nav-link {
+            color: var(--text-secondary);
+            transition: all 0.2s ease;
+        }
+        
+        .nav-item.external .nav-link:hover {
+            color: var(--text-accent);
+            background: rgba(213, 116, 85, 0.1);
+        }
+        
+        .external-indicator {
+            font-size: 0.75rem;
+            opacity: 0;
+            transform: translateX(-5px);
+            transition: all 0.3s ease;
+            margin-left: auto;
+            color: var(--text-secondary);
+        }
+        
+        .sidebar.hover-expanded .external-indicator {
+            opacity: 1;
+            transform: translateX(0);
+        }
+        
+        .nav-item.external:hover .external-indicator {
+            color: var(--text-accent);
+        }
+        
+        .sidebar.hover-expanded .nav-item.external .nav-link {
+            justify-content: space-between;
         }
         
         /* Tooltip for collapsed state */

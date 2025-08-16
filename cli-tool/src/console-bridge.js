@@ -3,6 +3,8 @@ const { spawn, exec } = require('child_process');
 const WebSocket = require('ws');
 const EventEmitter = require('events');
 const fs = require('fs');
+const express = require('express');
+const http = require('http');
 
 /**
  * ConsoleBridge - Bridges Claude Code console interactions with WebSocket
@@ -12,7 +14,7 @@ class ConsoleBridge extends EventEmitter {
   constructor(options = {}) {
     super();
     this.options = {
-      port: options.port || 3334,
+      port: parseInt(options.port || process.env.CLAUDE_CODE_TEMPLATES_CONSOLE_BRIDGE_PORT || process.env.CONSOLE_BRIDGE_PORT || '3334', 10),
       debug: options.debug || false,
       ...options
     };

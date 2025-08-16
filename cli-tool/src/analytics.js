@@ -26,7 +26,10 @@ class ClaudeAnalytics {
     this.options = options;
     this.verbose = options.verbose || false;
     this.app = express();
-    this.port = 3333;
+    // Support configurable port via options, environment variable, or default to 3333
+    this.port = parseInt(options.port || process.env.CLAUDE_CODE_TEMPLATES_PORT || process.env.PORT || '3333', 10);
+    this.apiProxyPort = parseInt(options.apiProxyPort || process.env.CLAUDE_CODE_TEMPLATES_API_PROXY_PORT || process.env.API_PROXY_PORT || '3335', 10);
+    this.consoleBridgePort = parseInt(options.consoleBridgePort || process.env.CLAUDE_CODE_TEMPLATES_CONSOLE_BRIDGE_PORT || process.env.CONSOLE_BRIDGE_PORT || '3334', 10);
     this.stateCalculator = new StateCalculator();
     this.processDetector = new ProcessDetector();
     this.fileWatcher = new FileWatcher();
@@ -1108,6 +1111,18 @@ class ClaudeAnalytics {
       }
     });
 
+    // Config endpoint to expose service ports to frontend
+    this.app.get('/api/config', (req, res) => {
+      res.json({
+        ports: {
+          analytics: this.port,
+          apiProxy: this.apiProxyPort,
+          consoleBridge: this.consoleBridgePort
+        },
+        timestamp: Date.now()
+      });
+    });
+
     // Version endpoint
     this.app.get('/api/version', (req, res) => {
       res.json({
@@ -1230,6 +1245,13 @@ class ClaudeAnalytics {
       console.log(chalk.yellow('Could not open browser automatically. Please visit:'));
       console.log(chalk.cyan(fullUrl));
     }
+    
+    // Log service endpoints for reference
+    console.log('');
+    console.log(chalk.blue('🔌 Service Endpoints:'));
+    console.log(chalk.gray(`   Analytics Dashboard: ${baseUrl}`));
+    console.log(chalk.gray(`   Claude API Proxy: http://localhost:${this.apiProxyPort}`));
+    console.log(chalk.gray(`   Console Bridge WebSocket: ws://localhost:${this.consoleBridgePort}`));
   }
 
   /**
@@ -1438,9 +1460,9 @@ class ClaudeAnalytics {
       
       // Initialize Claude API Proxy for bidirectional communication
       console.log(chalk.blue('🌉 Initializing Claude API Proxy...'));
-      this.claudeApiProxy = new ClaudeAPIProxy();
+      this.claudeApiProxy = new ClaudeAPIProxy({ port: this.apiProxyPort });
       await this.claudeApiProxy.start();
-      console.log(chalk.green('✅ Claude API Proxy initialized on port 3335'));
+      console.log(chalk.green(`✅ Claude API Proxy initialized on port ${this.apiProxyPort}`));
       
       // Setup notification subscriptions
       this.setupNotificationSubscriptions();
@@ -1461,9 +1483,9 @@ class ClaudeAnalytics {
     try {
       console.log(chalk.blue('🌉 Initializing Console Bridge...'));
       
-      // Create console bridge on a different port (3334)
+      // Create console bridge with configurable port
       this.consoleBridge = new ConsoleBridge({
-        port: 3334,
+        port: this.consoleBridgePort,
         debug: false // Set to true for detailed debugging
       });
       
@@ -1471,8 +1493,8 @@ class ClaudeAnalytics {
       const success = await this.consoleBridge.initialize();
       
       if (success) {
-        console.log(chalk.green('✅ Console Bridge initialized on port 3334'));
-        console.log(chalk.cyan('🔌 Web interface can connect to ws://localhost:3334 for console interactions'));
+        console.log(chalk.green(`✅ Console Bridge initialized on port ${this.consoleBridgePort}`));
+        console.log(chalk.cyan(`🔌 Web interface can connect to ws://localhost:${this.consoleBridgePort} for console interactions`));
         
         // Bridge console interactions to main WebSocket
         this.setupConsoleBridgeIntegration();

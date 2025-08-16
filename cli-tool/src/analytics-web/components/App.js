@@ -1,6 +1,6 @@
 /**
  * App - Main application component that handles routing and navigation
- * Orchestrates the sidebar, dashboard, and agents pages
+ * Orchestrates the sidebar and dashboard pages
  */
 class App {
   constructor(container, services) {
@@ -229,19 +229,7 @@ class App {
         }
         break;
         
-      case 'agents':
-        if (typeof AgentsPage !== 'undefined') {
-          this.components.pages.agents = new AgentsPage(container, this.services);
-          await this.components.pages.agents.initialize();
-          // Expose agentsPage globally for modal access
-          if (typeof window !== 'undefined' && window.claudeAnalyticsApp) {
-            window.claudeAnalyticsApp.agentsPage = this.components.pages.agents;
-            console.log('✅ Exposed agentsPage globally for modal access');
-          }
-        } else {
-          throw new Error('AgentsPage component not available. Check if components/AgentsPage.js is loaded.');
-        }
-        break;
+      // Agents page removed - Mobile Chat interface is accessed directly via /chats_mobile.html
         
       default:
         throw new Error(`Unknown page: ${page}`);
